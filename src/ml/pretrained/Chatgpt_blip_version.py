@@ -74,7 +74,7 @@ print(f"📝 **Generated Clothing Description:** {description}")
 
 
 import openai
-openai.api_key = "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"
+openai.api_key = ""
 
 def extract_clothing_labels(description):
     """
