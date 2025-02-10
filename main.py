@@ -2,13 +2,18 @@ import cv2
 import numpy as np
 from sklearn.cluster import KMeans
 import os
+import color_comp
 
 # Load the image
 # PLEASE BE IN THE CURRENT DIRECTORY, as in, inside fashionApp or else this WIILL throw error.
-image_path = os.path.join(os.getcwd(), "images", "test5.jpg")
-print(image_path)
+image_path = os.path.join(os.getcwd(), "images", "test6.jpg")
 image = cv2.imread(image_path)
 
+# Escape route if no image detected:
+if image is None:
+    print("Error: Image not found")
+    exit()
+    
 # opencv makes the image in bgr format for god knows why so convert it to rgb
 image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -39,13 +44,19 @@ for i in range(detections.shape[2]):
         # find the dominant color 
         kmeans = KMeans(n_clusters=1)
         kmeans.fit(pixels)
-
-        # Get the dominant color and convert to equivalent hex
         dominant_color = kmeans.cluster_centers_.astype(int)[0]
+        
+        # Get the dominant color and convert to equivalent hex
         hex_color = "#{:02x}{:02x}{:02x}".format(dominant_color[0], dominant_color[1], dominant_color[2])
 
         # Print the hexadecimal color
         print(f"Detected Skin Tone: {hex_color}")
+        
+        # Ranking the complementary colors: 
+        comp_palette = color_comp.get_comp_color(hex_color)
+        print("Recommend Complementary Colors (Ranked): ")
+        for rank, comp_color in enumerate(comp_palette, start =1):
+            print(f" Rank {rank} : {comp_color}")
 
         # Draw rectangle around face (for visualisation) <---- serves no other purpose
         cv2.rectangle(image, (x, y), (x2, y2), (0, 255, 0), 2)
