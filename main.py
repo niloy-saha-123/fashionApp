@@ -6,7 +6,7 @@ import color_comp
 
 # Load the image
 # PLEASE BE IN THE CURRENT DIRECTORY, as in, inside fashionApp or else this WIILL throw error.
-image_path = os.path.join(os.getcwd(), "images", "test6.jpg")
+image_path = os.path.join(os.getcwd(), "images", "test5.jpg")
 image = cv2.imread(image_path)
 
 # Escape route if no image detected:
@@ -39,7 +39,27 @@ for i in range(detections.shape[2]):
         (x, y, x2, y2) = box.astype("int")
         face_region = image_rgb[y:y2, x:x2]
 
-        pixels = face_region.reshape(-1, 3)
+        # Convert face region to YCrCb color space:
+        face_ycrcb = cv2.cvtColor(face_region, cv2.COLOR_RGB2YCrCb)
+        
+        # Threshhold for skin detection:
+        lower = np.array([0, 133, 77], dtype ="uint8")
+        upper = np.array([255, 173, 127], dtype = "uint8")
+        
+        # Skin Mask based on threshhold: 
+        skin_mask = cv2.inRange(face_ycrcb, lower, upper)
+        skin_mask = cv2.medianBlur(skin_mask, 5)
+        
+        # Extract skin parts:
+        skin_pixels_img = cv2.bitwise_and(face_region, face_region, mask = skin_mask)
+        skin_pixels = skin_pixels_img.reshape(-1,3)
+        skin_pixels = np.array([pixel for pixel in skin_pixels if not np.all(pixel == [0, 0, 0])])
+        
+        if skin_pixels.size == 0:
+            print("No skin pixels detected by mask. Falling back to full face region.")
+            pixels = face_region.reshape(-1, 3)
+        else:
+            pixels = skin_pixels
 
         # find the dominant color 
         kmeans = KMeans(n_clusters=1)
@@ -52,11 +72,24 @@ for i in range(detections.shape[2]):
         # Print the hexadecimal color
         print(f"Detected Skin Tone: {hex_color}")
         
-        # Ranking the complementary colors: 
-        comp_palette = color_comp.get_comp_color(hex_color)
-        print("Recommend Complementary Colors (Ranked): ")
-        for rank, comp_color in enumerate(comp_palette, start =1):
-            print(f" Rank {rank} : {comp_color}")
+        # Get all color palettes:
+        palettes = color_comp.get_all(hex_color)
+
+        print("\nRecommended Color Palettes:")
+        print("Complementary:")
+        print("  ", palettes["complementary"])
+        print("\nAnalogous (Left Shift):")
+        print("  ", palettes["analogous_left"])
+        print("Analogous (Right Shift):")
+        print("  ", palettes["analogous_right"])
+        print("\nTriadic Palette 1:")
+        print("  ", palettes["triadic1"])
+        print("Triadic Palette 2:")
+        print("  ", palettes["triadic2"])
+        print("\nSplit Complementary (Left of Complementary):")
+        print("  ", palettes["split_complementary_left"])
+        print("Split Complementary (Right of Complementary):")
+        print("  ", palettes["split_complementary_right"])
 
         # Draw rectangle around face (for visualisation) <---- serves no other purpose
         cv2.rectangle(image, (x, y), (x2, y2), (0, 255, 0), 2)
